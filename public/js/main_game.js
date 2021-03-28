@@ -1,39 +1,83 @@
-var window_height=window.innerHeight;
-var window_width=window.innerWidth;
+var window_height = window.innerHeight;
+var window_width = window.innerWidth;
 
-var config={
-    type:Phaser.AUTO,
-    width:window_width,
-    height:window_height,
-    backgroundColor:'#000000',
-    physics:{
-        default:"arcade",
-        arcade:{
-            gravity:{
-                y:0
+var config = {
+    type: Phaser.AUTO,
+    width: window_width,
+    height: window_height,
+    backgroundColor: '#000000',
+    physics: {
+        default: 'arcade',
+        arcade: {
+            gravity: {
+                y: 0,
             },
-            fps:60
+            fps: 60,
         }
     },
-    scene:{
-        preload:preload,
-        create:create,
-        update:update
+
+    scene: {
+        preload: preload,
+        create: create,
+        update: update,
     }
 }
-var game=new Phaser.Game(config)
 
-var player; // this is the new variable
+// holds a game instance
+var game = new Phaser.Game(config);
 
+var player;
+var player_init = false;
 
-
-function create(){
-    this.player = new Player(this, 500, 500);
-}
-function preload(){
+function preload() {
+    // loading images
     this.load.image('player', 'public/img/player.png');
-    this.load.image('bullet', 'public/img/bullet.png')
+    this.load.image('bullet', 'public/img/bullet.png');
+    this.load.image('enemy', 'public/img/enemy.png');
+
 }
-function update(){
-    this.player.update();
+
+function create() {
+    this.io = io();
+
+    self = this;
+
+    this.enemies = this.physics.add.group();
+   
+
+    this.io.on('actualPlayers', function(players) {
+        Object.keys(players).forEach(function (id) {
+            if (players[id].player_id == self.io.id) {
+                //alert("we are in the array");
+                createPlayer(self, players[id].x, players[id].y);
+            }else {
+                // we are creating other players
+                createEnemy(self, players[id]);
+            }
+        });
+    });
+
+    this.io.on('new_player', function (pInfo) {
+        createEnemy(self.scene, pInfo);
+    });
+
+    //this.player = new Player(this, 500, 500);
+}
+
+function update() {
+
+    if (this.player_init == true) {
+        this.player.update();
+    }
+    
+}
+
+function createPlayer(scene, x, y) {
+    scene.player_init = true;
+    scene.player = new Player(scene, x, y);
+}
+
+function createEnemy(scene, enemy_info) {
+    const enemy = new Enemy(scene, enemy_info.x, enemy_info.y, enemy_info.player_id);
+    scene.enemies.add(enemy);
 }
